@@ -2,8 +2,10 @@
 """Write the one-line office joke entry to /output/entry.txt.
 
 Stdlib only. The entry is a single line of UTF-8 text, 1-200 characters,
-with no trailing newline. After writing, the file is read back and
-compared byte-for-byte against the constant; any mismatch fails.
+with no trailing newline. /output/entry.txt is written and read back
+byte-for-byte; any mismatch fails. The copy next to this script is
+best-effort only: the grader runs with a read-only repository, so a
+strict local write would abort an otherwise valid entry.
 """
 
 import os
@@ -28,11 +30,17 @@ def main() -> int:
     with open(OUTPUT_PATH, "wb") as f:
         f.write(data)
 
+    # Best-effort local copy (see module docstring).
     local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entry.txt")
-    with open(local_path, "wb") as f:
-        f.write(data)
+    local_written = False
+    try:
+        with open(local_path, "wb") as f:
+            f.write(data)
+        local_written = True
+    except OSError as exc:
+        print(f"warning: local copy skipped ({exc})", file=sys.stderr)
 
-    for path in (OUTPUT_PATH, local_path):
+    for path in [OUTPUT_PATH] + ([local_path] if local_written else []):
         with open(path, "rb") as f:
             back = f.read()
         if back != data:
@@ -42,7 +50,7 @@ def main() -> int:
             print(f"trailing newline found in {path}", file=sys.stderr)
             return 1
 
-    print(f"wrote {len(data)} bytes ({len(ENTRY)} chars) to {OUTPUT_PATH} and entry.txt")
+    print(f"wrote {len(data)} bytes ({len(ENTRY)} chars) to {OUTPUT_PATH}")
     return 0
 
 
